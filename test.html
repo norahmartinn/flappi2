@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird Clone - Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
+            font-family: Arial, sans-serif;
+        }
+        
+        #container {
+            position: relative;
+        }
+        
+        canvas {
+            border: 3px solid #333;
+            background: #87CEEB;
+            display: none;
+        }
+        
+        #selectionScreen {
+            width: 400px;
+            height: 600px;
+            background: linear-gradient(to bottom, #87CEEB, #4A90E2);
+            border: 3px solid #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+        
+        #selectionScreen h1 {
+            color: white;
+            font-size: 36px;
+            margin-bottom: 10px;
+            text-shadow: 3px 3px 0px #333;
+        }
+        
+        #selectionScreen p {
+            color: white;
+            font-size: 18px;
+            margin-bottom: 40px;
+            text-shadow: 2px 2px 0px #333;
+        }
+        
+        #birdSelection {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .bird-option {
+            width: 140px;
+            height: 140px;
+            background: white;
+            border: 4px solid #333;
+            border-radius: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .bird-option:hover {
+            transform: scale(1.1);
+            border-color: #FFD700;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+        
+        .bird-option img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+        
+        #instructions {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            max-width: 200px;
+            display: none;
+        }
+        
+        #instructions.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <!-- Pantalla de selección -->
+        <div id="selectionScreen">
+            <h1>FLAPPY BIRD</h1>
+            <p>Elige tu pájaro:</p>
+            <div id="birdSelection">
+                <div class="bird-option" onclick="selectBird('bird1.png')">
+                    <img src="bird1.png" alt="Pájaro 1" onerror="this.src='bird.png'">
+                </div>
+                <div class="bird-option" onclick="selectBird('bird2.png')">
+                    <img src="bird2.png" alt="Pájaro 2" onerror="this.src='bird.png'">
+                </div>
+                <div class="bird-option" onclick="selectBird('bird3.png')">
+                    <img src="bird3.png" alt="Pájaro 3" onerror="this.src='bird.png'">
+                </div>
+                <div class="bird-option" onclick="selectBird('bird4.png')">
+                    <img src="bird4.png" alt="Pájaro 4" onerror="this.src='bird.png'">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Canvas del juego -->
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        
+        <!-- Instrucciones -->
+        <div id="instructions">
+            <strong>Controles:</strong><br>
+            Presiona ESPACIO para saltar
+        </div>
+        
+        <!-- Imágenes de pájaros (ocultas) -->
+        <img id="birdImage" style="display: none;">
+        
+        <!-- Audio -->
+        <audio id="jumpSound" src="jump.mp3"></audio>
+    </div>
+    
+    <script>
+        console.log("El archivo JavaScript se ha cargado correctamente");
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const birdImage = document.getElementById('birdImage');
+        const jumpSound = document.getElementById('jumpSound');
+        const selectionScreen = document.getElementById('selectionScreen');
+        const instructions = document.getElementById('instructions');
+
+        // Variable para controlar si el juego ha iniciado
+        let gameStarted = false;
+
+        // Configuración del pájaro
+        const bird = {
+            x: 50,
+            y: 300,
+            width: 40,
+            height: 30,
+            velocity: 0,
+            gravity: 0.5,
+            jump: -10
+        };
+
+        // Configuración de los tubos
+        const pipes = [];
+        const pipeWidth = 50;
+        const pipeGap = 150;
+
+        // Función para seleccionar el pájaro e iniciar el juego
+        function selectBird(birdSrc) {
+            console.log("Pájaro seleccionado:", birdSrc);
+            
+            // Cargar la imagen del pájaro seleccionado
+            birdImage.src = birdSrc;
+            
+            // Manejar error si la imagen no existe, usar bird.png como fallback
+            birdImage.onerror = function() {
+                console.log("No se encontró", birdSrc, "usando bird.png");
+                birdImage.src = 'bird.png';
+            };
+            
+            // Esperar a que la imagen se cargue antes de iniciar el juego
+            birdImage.onload = function() {
+                console.log("Imagen cargada, iniciando juego");
+                
+                // Ocultar pantalla de selección
+                selectionScreen.style.display = 'none';
+                
+                // Mostrar canvas del juego
+                canvas.style.display = 'block';
+                
+                // Mostrar instrucciones
+                instructions.classList.add('show');
+                
+                // Iniciar el juego
+                gameStarted = true;
+                gameLoop();
+            };
+        }
+
+        // Función para dibujar el pájaro
+        function drawBird() {
+            ctx.drawImage(birdImage, bird.x - bird.width / 2, bird.y - bird.height / 2, bird.width, bird.height);
+        }
+
+        // Función para dibujar los tubos
+        function drawPipes() {
+            pipes.forEach(pipe => {
+                ctx.fillStyle = 'green';
+                ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top);
+                ctx.fillRect(pipe.x, pipe.bottom, pipeWidth, canvas.height - pipe.bottom);
+            });
+        }
+
+        // Función para actualizar el estado del juego
+        function update() {
+            if (!gameStarted) return;
+            
+            // Actualizar posición del pájaro
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
+
+            // Generar nuevos tubos
+            if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) {
+                const pipeY = Math.random() * (canvas.height - pipeGap);
+                pipes.push({
+                    x: canvas.width,
+                    top: pipeY,
+                    bottom: pipeY + pipeGap
+                });
+            }
+
+            // Mover tubos
+            pipes.forEach(pipe => {
+                pipe.x -= 2;
+            });
+
+            // Eliminar tubos fuera de la pantalla
+            if (pipes[0] && pipes[0].x < -pipeWidth) {
+                pipes.shift();
+            }
+
+            // Detectar colisiones
+            pipes.forEach(pipe => {
+                if (
+                    bird.x + bird.width / 2 > pipe.x &&
+                    bird.x - bird.width / 2 < pipe.x + pipeWidth &&
+                    (bird.y - bird.height / 2 < pipe.top || bird.y + bird.height / 2 > pipe.bottom)
+                ) {
+                    // Colisión detectada, reiniciar juego
+                    bird.y = 300;
+                    bird.velocity = 0;
+                    pipes.length = 0;
+                }
+            });
+
+            // Mantener el pájaro dentro del canvas
+            if (bird.y + bird.height / 2 > canvas.height) {
+                bird.y = canvas.height - bird.height / 2;
+                bird.velocity = 0;
+            }
+        }
+
+        // Función principal del juego
+        function gameLoop() {
+            if (!gameStarted) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            update();
+            drawPipes();
+            drawBird();
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Modifica el evento para hacer saltar al pájaro y reproducir el sonido
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space' && gameStarted) {
+                bird.velocity = bird.jump;
+                playJumpSound();
+            }
+        });
+
+        // Función para reproducir el sonido de salto
+        function playJumpSound() {
+            jumpSound.currentTime = 0;
+            jumpSound.play().catch(error => console.log("Error al reproducir el sonido:", error));
+        }
+    </script>
+</body>
+</html>
